@@ -335,18 +335,25 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		if (StringUtils.hasLength(beanName) && this.targetSourcedBeans.contains(beanName)) {
 			return bean;
 		}
+		//判断是否应该代理这个Bean
 		if (Boolean.FALSE.equals(this.advisedBeans.get(cacheKey))) {
 			return bean;
 		}
+		/**
+		 * 判断是否是一些 InfrastructureClass（基础设施类），或者是否应该跳过这个bean
+		 * InfrastructureClass 是指：Advice，Advisor，PointCut，AopInfrastructureBean 等接口的实现类
+		 */
 		if (isInfrastructureClass(bean.getClass()) || shouldSkip(bean.getClass(), beanName)) {
 			this.advisedBeans.put(cacheKey, Boolean.FALSE);
 			return bean;
 		}
 
-		// Create proxy if we have advice.
+		// Create proxy if we have advice. 获取这个bean的通知
 		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
 		if (specificInterceptors != DO_NOT_PROXY) {
+			//设置该bean是否需要被代理的标识，为需要被代理
 			this.advisedBeans.put(cacheKey, Boolean.TRUE);
+			//创建代理
 			Object proxy = createProxy(
 					bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));
 			this.proxyTypes.put(cacheKey, proxy.getClass());
@@ -447,13 +454,16 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		}
 
 		ProxyFactory proxyFactory = new ProxyFactory();
+		//复制配置信息
 		proxyFactory.copyFrom(this);
 
 		if (!proxyFactory.isProxyTargetClass()) {
 			if (shouldProxyTargetClass(beanClass, beanName)) {
+				//使用cglib代理
 				proxyFactory.setProxyTargetClass(true);
 			}
 			else {
+				//评估代理接口，就是设置代理类型标识，是用jdk代理还是cglib代理
 				evaluateProxyInterfaces(beanClass, proxyFactory);
 			}
 		}
